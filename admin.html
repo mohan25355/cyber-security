@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – MCQ Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; }
+    .bg-yellow-100 { background-color: #fef9c3; }
+    .text-yellow-700 { color: #a16207; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 p-4">
+  <div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-2xl shadow p-4 mb-4 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Admin Dashboard</h1>
+      <div id="authBox" class="flex items-center gap-3"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div id="loginCard" class="bg-white rounded-2xl shadow p-6 max-w-md mx-auto">
+      <h2 class="text-lg font-medium mb-3">Admin Login</h2>
+      <form id="loginForm" class="grid gap-3">
+        <input type="email" name="email" placeholder="Email" class="border p-3 rounded-xl" required />
+        <input type="password" name="password" placeholder="Password" class="border p-3 rounded-xl" required />
+        <button class="bg-black text-white rounded-xl p-3">Sign In</button>
+        <!-- <p class="text-xs text-gray-500">Use: <strong>mohanasundaram25355@gmail.com</strong> / <strong>Mohan25355</strong></p> -->
+      </form>
+      <p id="loginMsg" class="mt-2 text-sm"></p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dash" class="hidden">
+      <div class="bg-white rounded-2xl shadow p-4 mb-4 grid gap-3 sm:grid-cols-4">
+        <input id="filterName" placeholder="Search name/email" class="border p-2 rounded-xl" />
+        <input id="filterDept" placeholder="Filter Dept" class="border p-2 rounded-xl" />
+        <input id="filterMinScore" type="number" placeholder="Min Score" class="border p-2 rounded-xl" />
+        <input id="filterMaxWarn" type="number" placeholder="Max Warnings" class="border p-2 rounded-xl" />
+      </div>
+
+      <div class="bg-white rounded-2xl shadow overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="text-left p-3">Name</th>
+              <th class="text-left p-3">Email</th>
+              <th class="text-left p-3">Dept/Year</th>
+              <th class="text-left p-3">Enroll</th>
+              <th class="text-left p-3">Start</th>
+              <th class="text-left p-3">Score</th>
+              <th class="text-left p-3">Warnings</th>
+              <th class="text-left p-3">Status</th>
+              <th class="text-left p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./common.js"></script>
+  <script type="module">
+    const ADMIN_EMAIL = 'mohanasundaram25355@gmail.com';
+
+    const { auth, db, fns } = window.__FIREBASE__;
+    const { signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, onSnapshot, query, orderBy, deleteDoc, doc } = fns;
+
+    const loginCard = document.getElementById('loginCard');
+    const dash = document.getElementById('dash');
+    const loginForm = document.getElementById('loginForm');
+    const loginMsg = document.getElementById('loginMsg');
+    const authBox = document.getElementById('authBox');
+
+    onAuthStateChanged(auth, (user) => {
+      if (user && user.email === ADMIN_EMAIL) {
+        loginCard.classList.add('hidden');
+        dash.classList.remove('hidden');
+        authBox.innerHTML = `<span class="text-sm text-gray-600">${user.email}</span><button id="logoutBtn" class="border rounded-xl px-3 py-1">Logout</button>`;
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+        attachLiveTable();
+      } else {
+        dash.classList.add('hidden');
+        loginCard.classList.remove('hidden');
+        authBox.innerHTML = '';
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { email, password } = Object.fromEntries(new FormData(loginForm).entries());
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        if (cred.user.email !== ADMIN_EMAIL) throw new Error('Not authorized for admin dashboard');
+      } catch (err) {
+        loginMsg.textContent = err.message;
+        loginMsg.className = 'mt-2 text-sm text-red-600';
+      }
+    });
+
+    // Filters
+    const filters = {
+      name: document.getElementById('filterName'),
+      dept: document.getElementById('filterDept'),
+      minScore: document.getElementById('filterMinScore'),
+      maxWarn: document.getElementById('filterMaxWarn'),
+    };
+
+    let cached = [];
+    Object.values(filters).forEach(inp => inp.addEventListener('input', render));
+
+    function attachLiveTable() {
+      const qy = query(collection(db, 'attempts'), orderBy('createdAt', 'desc'));
+      onSnapshot(qy, (snap) => {
+        cached = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+      });
+    }
+
+    function render() {
+      const rows = document.getElementById('rows');
+      const name = (filters.name.value || '').toLowerCase();
+      const dept = (filters.dept.value || '').toLowerCase();
+      const minScore = filters.minScore.value ? Number(filters.minScore.value) : -1;
+      const maxWarn = filters.maxWarn.value ? Number(filters.maxWarn.value) : Infinity;
+
+      const fmt = (ts) => ts?.toDate ? ts.toDate().toLocaleString() : '-';
+
+      const filtered = cached.filter(r =>
+        (!name || (r.name?.toLowerCase().includes(name) || r.email?.toLowerCase().includes(name))) &&
+        (!dept || r.dept?.toLowerCase().includes(dept)) &&
+        (r.score >= minScore) &&
+        (r.warnings <= maxWarn)
+      );
+
+      rows.innerHTML = filtered.map(r => `
+        <tr class="border-b">
+          <td class="p-3">${r.name || '-'}</td>
+          <td class="p-3">${r.email || '-'}</td>
+          <td class="p-3">${r.dept || '-'} / ${r.year || '-'}</td>
+          <td class="p-3">${r.enroll || '-'}</td>
+          <td class="p-3">${fmt(r.startTime)}</td>
+          <td class="p-3 font-semibold">${r.score ?? '-'}</td>
+          <td class="p-3"><span class="badge bg-yellow-100 text-yellow-700">${r.warnings ?? 0}</span></td>
+          <td class="p-3">${r.status || '-'}</td>
+          <td class="p-3">
+            <button data-id="${r.id}" class="del border px-3 py-1 rounded-xl hover:bg-red-50">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      Array.from(document.querySelectorAll('.del')).forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this attempt?')) return;
+          await deleteDoc(doc(db, 'attempts', btn.getAttribute('data-id')));
+        });
+      });
+    }
+  </script>
+</body>
+</html>
