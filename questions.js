@@ -1,4 +1,4 @@
-// 50 MCQ questions; answer is the index (0..3)
+
 window.QUESTIONS = [
   { q: 'What does CPU stand for?', options: ['Central Processing Unit', 'Computer Personal Unit', 'Central Printing Unit', 'Control Process Unit'], answer: 0 },
   { q: 'Which is an operating system?', options: ['Python', 'Linux', 'HTML', 'SQL'], answer: 1 },
@@ -41,8 +41,9 @@ window.QUESTIONS = [
   { q: 'Which is a CSS framework?', options: ['Django', 'Bootstrap', 'Node', 'Express'], answer: 1 },
   { q: 'Responsive design for…', options: ['Performance only', 'Different screen sizes', 'Security', 'Back-end'], answer: 1 },
   { q: 'LocalStorage stores…', options: ['Server data', 'Client key-value pairs', 'Images only', 'Sessions only'], answer: 1 },
-  { q: 'Which tag makes a link?', options: ['<p>', '<a>', '<div>', '<span>'], answer: 1 },
-  { q: 'Which starts a form?', options: ['<input>', '<form>', '<button>', '<label>'], answer: 1 },
+  { q: 'What is the first cryptocurrency that used blockchain technology?', options: ['Ethereum', 'Ripple', 'Bitcoin', 'Litecoin'], answer: 2 },
+{ q: 'Which consensus mechanism is primarily used by Bitcoin?', options: ['Proof of Work', 'Proof of Stake', 'Delegated Proof of Stake', 'Proof of Authority'], answer: 0 },
+
 
   { q: 'Unit of frequency?', options: ['Newton', 'Hertz', 'Watt', 'Ohm'], answer: 1 },
   { q: 'Planet known as Red Planet?', options: ['Mars', 'Jupiter', 'Venus', 'Mercury'], answer: 0 },
