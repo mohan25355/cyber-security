@@ -24,7 +24,7 @@
       <button id="submitBtn" class="px-4 py-2 rounded-xl bg-black text-white">Submit Test</button>
     </div>
 
-    <p class="text-sm text-gray-500 mt-4">⚠️ Do not switch tabs, minimize, or leave full screen. 3 warnings = auto‑submit.</p>
+    <p class="text-sm text-gray-500 mt-4">⚠️ Do not switch tabs, minimize, exit fullscreen, or open dev tools. 3 warnings = auto-submit.</p>
   </div>
 
   <script type="module" src="./common.js"></script>
@@ -72,9 +72,10 @@
     tick();
     const interval = setInterval(tick, 1000);
 
-    // Anti-cheat: count warnings on blur/visibilitychange
+    // Anti-cheat: count warnings
     let warnings = 0;
     const warningsEl = document.getElementById('warnings');
+
     const addWarning = async () => {
       warnings++;
       warningsEl.textContent = `Warnings: ${warnings}`;
@@ -85,8 +86,25 @@
       }
     };
 
+    // Detect tab switch/minimize
     window.addEventListener('blur', addWarning);
     document.addEventListener('visibilitychange', () => { if (document.hidden) addWarning(); });
+
+    // Detect exit from fullscreen
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) addWarning();
+    });
+
+    // Block right-click
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+    // Block F12 / Ctrl+Shift+I/J/C
+    document.addEventListener("keydown", e => {
+      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && ["I","C","J"].includes(e.key))) {
+        e.preventDefault();
+        addWarning();
+      }
+    });
 
     // Prevent closing/refresh
     window.onbeforeunload = (e) => { e.preventDefault(); e.returnValue = ''; };
